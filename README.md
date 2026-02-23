@@ -98,24 +98,6 @@
 | Финансовая отчётность      | Да           | Нет    | Нет       | Нет           |
 
 ## 4. Бизнес-процессы
-
-### 4.1. Общая схема процесса
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           ЖИЗНЕННЫЙ ЦИКЛ ОБЪЕКТА                            │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐               │
-│  │  Осмотр  │──▶│  Планир. │──▶ │Исполнение│──▶│  Сдача   │               │
-│  │  объекта │    │  работ   │    │  работ   │    │  объекта │               │
-│  └──────────┘    └──────────┘    └──────────┘    └──────────┘               │
-│       │               │               │               │                     │
-│       ▼               ▼               ▼               ▼                     │
-│   Чек-лист         Задачи         Отчёты          Чек-лист                  │
-│   Осмотр           План           Выработка       Приёмка                   │
-│   КП (черновик)    Даты           ЗП              Акт                       │
-└─────────────────────────────────────────────────────────────────────────────┘
-## 4.1. Общая схема процесса
-
 ## 4.1. Общая схема процесса
 
 ```mermaid
@@ -205,41 +187,136 @@ flowchart LR
 ## 5. Структура базы данных
 
 ### 5.1. ER-диаграмма (текстовое представление)
+```mermaid
+erDiagram
+    USERS ||--o{ OBJECTS : "manages"
+    USERS ||--o{ TASKS : "assigned"
+    USERS ||--o{ WORK_REPORTS : "creates"
+    USERS ||--o{ MATERIAL_REQUESTS : "creates"
+    USERS ||--o{ EQUIPMENT_REQUESTS : "creates"
 
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           ЯДРО СИСТЕМЫ                                  │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐               │
-│  │   users      │    │   objects    │    │  nomenclature│               │
-│  │(пользователи)│    │   (объекты)  │    │  (справочник)│               │
-│  ├──────────────┤    ├──────────────┤    ├──────────────┤               │
-│  │ id           │    │ id           │    │ id           │               │
-│  │ name         │    │ name         │    │ name         │               │
-│  │ email        │    │ address      │    │ category_id  │               │
-│  │ role_id      │    │ status       │    │ type         │               │
-│  │ phone        │    │ manager_id   │    │ price_client │               │
-│  │ created_at   │    │ foreman_id   │    │ price_foreman│               │
-│  │              │    │ created_at   │    │ price_worker │               │
-│  │              │    │              │    │ tech_card_id │               │
-│  └──────────────┘    └──────────────┘    └──────────────┘               │
-│         │                    │                    │                     │
-│         │                    │                    │                     │
-│         ▼                    ▼                    ▼                     │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐               │
-│  │   roles      │    │   tasks      │    │  work_reports│               │
-│  │   (роли)     │    │   (задачи)   │    │  (отчёты)    │               │
-│  ├──────────────┤    ├──────────────┤    ├──────────────┤               │
-│  │ id           │    │ id           │    │ id           │               │
-│  │ name         │    │ object_id    │    │ task_id      │               │
-│  │ permissions  │    │ worker_id    │    │ worker_id    │               │
-│  │              │    │nomenclature_id│   │ quantity     │               │
-│  │              │    │ plan_date    │    │ date         │               │
-│  │              │    │ status       │    │ status       │               │
-│  │              │    │ comment      │    │foreman_comment│              │
-│  └──────────────┘    └──────────────┘    └──────────────┘               │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+    OBJECTS ||--o{ TASKS : "contains"
+    OBJECTS ||--o{ WORK_REPORTS : "has"
+    OBJECTS ||--o{ WAREHOUSE_OBJECTS : "has"
+    OBJECTS ||--o{ APPROVAL_QUESTIONS : "has"
+
+    NOMENCLATURE ||--o{ TASKS : "reference"
+    NOMENCLATURE ||--o{ WORK_REPORTS : "reference"
+    NOMENCLATURE ||--o{ WAREHOUSE_OBJECTS : "reference"
+
+    TASKS ||--o{ WORK_REPORTS : "completed_by"
+
+    MATERIAL_REQUESTS ||--o{ REQUEST_ITEMS : "contains"
+    EQUIPMENT_REQUESTS ||--o{ REQUEST_ITEMS : "contains"
+
+    WAREHOUSE_OBJECTS ||--o{ WAREHOUSE_TRANSACTIONS : "logs"
+
+    USERS {
+        int id PK
+        string name
+        string email
+        int role_id FK
+        string phone
+        boolean is_active
+    }
+
+    OBJECTS {
+        int id PK
+        string name
+        string address
+        string status
+        int manager_id FK
+        int foreman_id FK
+        datetime created_at
+    }
+
+    TASKS {
+        int id PK
+        int object_id FK
+        int worker_id FK
+        int nomenclature_id FK
+        date plan_date
+        string status
+        text comment
+    }
+
+    NOMENCLATURE {
+        int id PK
+        string name
+        int category_id FK
+        decimal price_client
+        decimal price_foreman
+        decimal price_worker
+        int tech_card_id FK
+    }
+
+    WORK_REPORTS {
+        int id PK
+        int task_id FK
+        int worker_id FK
+        int quantity
+        date report_date
+        string status
+        text foreman_comment
+    }
+
+    MATERIAL_REQUESTS {
+        int id PK
+        int object_id FK
+        int worker_id FK
+        int foreman_id FK
+        string status
+        datetime created_at
+    }
+
+    EQUIPMENT_REQUESTS {
+        int id PK
+        int object_id FK
+        int worker_id FK
+        int foreman_id FK
+        boolean manager_approved
+        string status
+        datetime created_at
+    }
+
+    WAREHOUSE_OBJECTS {
+        int id PK
+        int object_id FK
+        int nomenclature_id FK
+        int quantity_in
+        int quantity_out
+        int quantity_remaining
+    }
+
+    REQUEST_ITEMS {
+        int id PK
+        int request_id FK
+        int nomenclature_id FK
+        int quantity
+        string unit
+    }
+
+    WAREHOUSE_TRANSACTIONS {
+        int id PK
+        int warehouse_id FK
+        string type
+        int quantity
+        datetime date
+        int user_id FK
+    }
+
+    APPROVAL_QUESTIONS {
+        int id PK
+        int object_id FK
+        int worker_id FK
+        int foreman_id FK
+        text description
+        text solution
+        boolean approved
+        datetime created_at
+    }
+```
+
 ### 5.2. Полный список таблиц
 
 |№|Таблица|Назначение|Ключевые поля|
